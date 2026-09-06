@@ -4596,7 +4596,12 @@ func (e *Engine) transferParallelFile(ctx context.Context, peer Peer, message Me
 			if update.writeMs > 0 {
 				lastDiagnosticWriteMs = update.writeMs
 			}
-			options := transferProgressOptions{chunkSize: parallelChunkSize, windowSize: 8, windowBytes: 4 * 1024 * 1024, streamCount: streamCount, activeStreams: launched - completed, streamID: update.streamID, inFlightBytes: sent - confirmed, ackTargetBytes: parallelAckBytes, socketWriteMs: lastDiagnosticWriteMs, ackLatency: lastDiagnosticAck, diskWriteMs: update.diskWriteMs, transferMode: parallelBinaryMode, transport: "TLS/TCP", protocol: protocolLabel, tuningState: map[bool]string{true: "stable", false: "probing"}[launched == streamCount]}
+			inFlight := sent - confirmed
+			windowSize := 1
+			if inFlight > 0 {
+				windowSize = int((inFlight + int64(parallelChunkSize) - 1) / int64(parallelChunkSize))
+			}
+			options := transferProgressOptions{chunkSize: parallelChunkSize, windowSize: windowSize, windowBytes: inFlight, streamCount: streamCount, activeStreams: launched - completed, streamID: update.streamID, inFlightBytes: inFlight, ackTargetBytes: parallelAckBytes, socketWriteMs: lastDiagnosticWriteMs, ackLatency: lastDiagnosticAck, diskWriteMs: lastDiskWriteMs, transferMode: parallelBinaryMode, transport: "TLS/TCP", protocol: protocolLabel, tuningState: map[bool]string{true: "stable", false: "probing"}[launched == streamCount]}
 			now := time.Now()
 			if now.Sub(sampleAt) >= transferSpeedSampleInterval && confirmed > sampleBytes {
 				confirmedRate = float64(confirmed-sampleBytes) / now.Sub(sampleAt).Seconds()

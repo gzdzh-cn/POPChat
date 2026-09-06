@@ -454,7 +454,8 @@ function messageStatusText(status: string, kind = 'text', attachmentStatus = '',
     if (fileStatus === 'sent' || fileStatus === 'delivered') return '发送成功'
     if (fileStatus === 'read') return ''
     if (fileStatus === 'rejected') return sentByMe ? '对方已拒绝' : '我已拒绝'
-    if (fileStatus === 'pending') return sentByMe ? '接收中' : '等待接收'
+    if (fileStatus === 'pending') return sentByMe ? '发送中' : '等待接收'
+    if (sentByMe && (fileStatus === 'sending' || fileStatus === 'receiving')) return '发送中'
     return ({ preparing_thumbnail: '图片处理中', sending: '发送中', receiving: '接收中', canceled: '已取消', not_friend: '不是好友', failed: '发送失败' } as Record<string, string>)[fileStatus] || ''
   }
   if (status === 'sent') return '已发送'
