@@ -126,7 +126,12 @@ export interface TransferProgress {
   confirmedThroughput?: number
   ackLatencyMs?: number
   diskWriteMs?: number
-  transferMode?: 'binary-window' | 'json-window' | 'legacy-chunk' | string
+  transferMode?: 'parallel-binary' | 'binary-window' | 'json-window' | 'legacy-chunk' | string
+  streamCount?: number
+  activeStreams?: number
+  streamId?: number
+  streamOffset?: number
+  streamLength?: number
   transport?: string
   protocol?: string
   tuningState?: 'probing' | 'accelerating' | 'stable' | 'backing_off' | string

@@ -49,10 +49,65 @@ func TestHelloMessageUsesCanonicalProtocol(t *testing.T) {
 	if message.Protocol != ProtocolName || message.Major != ProtocolMajor || message.Magic != DiscoveryMagic {
 		t.Fatalf("hello did not use canonical dialect: %+v", message)
 	}
-	for _, capability := range []string{"text", "image", "file", "file-progress-v1", "file-window-v2", "file-stream-v3", "avatar-sync-v1", "offline-v1", "friend-restore-v2"} {
+	for _, capability := range []string{"text", "image", "file", "file-progress-v1", "file-window-v2", "file-stream-v3", "file-stream-v4", "avatar-sync-v1", "offline-v1", "friend-restore-v2"} {
 		if !hasCapability(message.Capabilities, capability) {
 			t.Fatalf("capability %q missing: %v", capability, message.Capabilities)
 		}
+	}
+}
+
+func TestParallelStreamRangesCoverFileWithoutOverlap(t *testing.T) {
+	const size = int64(2*1024*1024*1024 + 160*1024*1024)
+	const streams = 4
+	var covered int64
+	var previousEnd int64
+	for streamID := 0; streamID < streams; streamID++ {
+		offset, length, ok := parallelRangeFor(size, streamID, streams)
+		if !ok || offset != previousEnd {
+			t.Fatalf("invalid range %d: offset=%d length=%d previousEnd=%d", streamID, offset, length, previousEnd)
+		}
+		covered += length
+		previousEnd = offset + length
+	}
+	if covered != size || previousEnd != size {
+		t.Fatalf("ranges covered %d of %d bytes", covered, size)
+	}
+}
+
+func TestParallelStreamRangesRejectInvalidAndPreserveExactAssignments(t *testing.T) {
+	const size = int64(256 * 1024 * 1024)
+	for streamID := 0; streamID < parallelMaxStreams; streamID++ {
+		offset, length, ok := parallelRangeFor(size, streamID, parallelMaxStreams)
+		if !ok || length <= 0 {
+			t.Fatalf("stream %d has no valid range", streamID)
+		}
+		badOffset, badLength, badOK := parallelRangeFor(size, streamID, parallelMaxStreams+1)
+		if !badOK || (badOffset == offset && badLength == length) {
+			t.Fatalf("stream %d unexpectedly accepted a different stream layout", streamID)
+		}
+	}
+	for _, tc := range []struct {
+		fileSize  int64
+		streamID  int
+		streamCnt int
+	}{
+		{fileSize: 0, streamID: 0, streamCnt: 1},
+		{fileSize: size, streamID: -1, streamCnt: parallelMaxStreams},
+		{fileSize: size, streamID: parallelMaxStreams, streamCnt: parallelMaxStreams},
+		{fileSize: size, streamID: 0, streamCnt: 0},
+	} {
+		if _, _, ok := parallelRangeFor(tc.fileSize, tc.streamID, tc.streamCnt); ok {
+			t.Fatalf("invalid range accepted: %+v", tc)
+		}
+	}
+}
+
+func TestParallelStreamCountStartsSingleAndScalesForLargeFiles(t *testing.T) {
+	if got := parallelStreamCount(parallelStreamThreshold - 1); got != parallelInitialStreams {
+		t.Fatalf("small file stream count = %d, want %d", got, parallelInitialStreams)
+	}
+	if got := parallelStreamCount(parallelStreamThreshold); got != parallelMaxStreams {
+		t.Fatalf("large file stream count = %d, want %d", got, parallelMaxStreams)
 	}
 }
 

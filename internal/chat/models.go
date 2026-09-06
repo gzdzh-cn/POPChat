@@ -385,6 +385,13 @@ type wireMessage struct {
 	RelativePath        string                   `json:"relativePath,omitempty"`
 	SharedFolderID      string                   `json:"sharedFolderId,omitempty"`
 	TransferID          string                   `json:"transferId,omitempty"`
+	TransferToken       string                   `json:"transferToken,omitempty"`
+	StreamID            int                      `json:"streamId,omitempty"`
+	StreamCount         int                      `json:"streamCount,omitempty"`
+	ActiveStreams       int                      `json:"activeStreams,omitempty"`
+	StreamOffset        int64                    `json:"streamOffset,omitempty"`
+	StreamLength        int64                    `json:"streamLength,omitempty"`
+	StreamBytes         int64                    `json:"streamBytes,omitempty"`
 	Offset              int64                    `json:"offset,omitempty"`
 	Entries             []SharedEntry            `json:"entries,omitempty"`
 	SharedFolders       []SharedFolder           `json:"sharedFolders,omitempty"`

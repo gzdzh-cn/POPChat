@@ -140,11 +140,12 @@
                 <p><span>分块 / 窗口</span><strong>{{ detailProgress.chunkSize ? formatBytes(detailProgress.chunkSize) : '兼容模式' }} · {{ detailProgress.windowSize ? `${detailProgress.windowSize} 块` : '逐块确认' }}</strong></p>
                 <p><span>窗口数据量</span><strong>{{ detailProgress.windowBytes ? formatBytes(detailProgress.windowBytes) : '未提供' }}</strong></p>
                 <p><span>在途数据</span><strong>{{ detailProgress.inFlightBytes ? formatBytes(detailProgress.inFlightBytes) : '未提供' }}</strong></p>
-                <p><span>累计确认速度</span><strong>{{ detailProgress.confirmedThroughput ? `${formatSpeed(detailProgress.confirmedThroughput)}/秒` : '正在测量' }}</strong></p>
+                <p><span>累计确认速度</span><strong>{{ detailProgress.confirmedThroughput ? `${formatSpeed(detailProgress.confirmedThroughput)}/S` : '正在测量' }}</strong></p>
                 <p><span>确认批量</span><strong>{{ detailProgress.ackTargetBytes ? formatBytes(detailProgress.ackTargetBytes) : '逐窗口确认' }}</strong></p>
                 <p><span>确认延迟</span><strong>{{ detailProgress.ackLatencyMs ? `${detailProgress.ackLatencyMs} ms` : '正在测量' }}</strong></p>
                 <p><span>调优状态</span><strong>{{ tuningStateLabel(detailProgress.tuningState) }}</strong></p>
                 <p><span>通道 / 模式</span><strong>{{ detailProgress.transport || 'TLS/TCP' }} · {{ transferModeLabel(detailProgress.transferMode) }}</strong></p>
+                <p v-if="detailProgress.streamCount"><span>并行数据流</span><strong>{{ detailProgress.activeStreams || detailProgress.streamCount }} / {{ detailProgress.streamCount }} 路</strong></p>
               </div>
               <p v-if="detailProgress.tuningReason" class="attachment-details-reason" :title="detailProgress.tuningReason">{{ detailProgress.tuningReason }}</p>
             </div>
@@ -1063,7 +1064,7 @@ function formatSpeed(value: number) {
 function formatTransferRate(value?: number): { primary: string; secondary: string } {
   const bytes = Number(value || 0)
   if (!(bytes > 0)) return { primary: '正在测量', secondary: '' }
-  const primary = `${formatSpeed(bytes)}/s`
+  const primary = `${formatSpeed(bytes)}/S`
   const bits = bytes * 8
   const secondary = bits >= 1000 * 1000 * 1000
     ? `${Math.round(bits / 1000 / 1000 / 1000)} Gbps`
@@ -1079,7 +1080,7 @@ const detailProgressElapsed = computed(() => formatDuration(detailProgress.value
 function transferPhaseLabel(phase?: string) { return ({ awaiting_acceptance: '等待对方接收', preparing_thumbnail: '文件准备中', transferring: '传输中', receiving: '接收中', 'remote-receive': '对方接收中', completed: '已完成', canceled: '已取消', rejected: '已拒绝', failed: '传输失败' } as Record<string, string>)[phase || ''] || phase || '未知' }
 function transferDirectionLabel(direction?: string) { return ({ send: '发送', receive: '接收', 'remote-receive': '对方接收' } as Record<string, string>)[direction || ''] || direction || '未知' }
 function tuningStateLabel(state?: string) { return ({ probing: '探测中', accelerating: '加速中', stable: '稳定', backing_off: '降速恢复' } as Record<string, string>)[state || ''] || state || '兼容模式' }
-function transferModeLabel(mode?: string) { return ({ 'binary-window': '高速二进制', 'json-window': '兼容窗口', 'legacy-chunk': '逐块兼容' } as Record<string, string>)[mode || ''] || mode || '正在协商' }
+function transferModeLabel(mode?: string) { return ({ 'parallel-binary': '并行高速二进制', 'binary-window': '高速二进制', 'json-window': '兼容窗口', 'legacy-chunk': '逐块兼容' } as Record<string, string>)[mode || ''] || mode || '正在协商' }
 const terminalTransferPhases = new Set(['completed', 'canceled', 'rejected', 'failed'])
 function transferProgressFor(message: any): any {
   if (!message?.attachmentId) return undefined
@@ -1125,7 +1126,7 @@ function transferProgressPercent(message: any): number {
 }
 function transferSpeedLabel(message: any): string {
   const progress = transferProgressFor(message)
-  return progress?.speed ? `${formatSpeed(progress.speed)}/秒` : '正在测量'
+  return progress?.speed ? `${formatSpeed(progress.speed)}/S` : '正在测量'
 }
 function transferProgressLabel(message: any): string {
   const progress = transferProgressFor(message)
